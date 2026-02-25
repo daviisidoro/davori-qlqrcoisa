@@ -1,0 +1,175 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PRODUCER
+  STUDENT
+  ADMIN
+}
+
+enum ProductType {
+  COURSE
+  EBOOK
+  MENTORING
+  WORKSHOP
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELLED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  PIX
+  BOLETO
+}
+
+// ── Users ────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(STUDENT)
+  avatarUrl    String?  @map("avatar_url")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relações
+  products      Product[]
+  orders        Order[]
+  enrollments   Enrollment[]
+  refreshTokens RefreshToken[]
+  affiliateLinks AffiliateLink[] @relation("AffiliateUser")
+
+  @@map("users")
+}
+
+// ── Refresh Tokens ────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ── Products ─────────────────────────────────────────────────
+model Product {
+  id           String        @id @default(uuid())
+  producerId   String        @map("producer_id")
+  title        String
+  slug         String        @unique
+  description  String?
+  price        Decimal       @db.Decimal(10, 2)
+  type         ProductType   @default(COURSE)
+  status       ProductStatus @default(DRAFT)
+  coverUrl     String?       @map("cover_url")
+  checkoutUrl  String?       @map("checkout_url")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  producer      User            @relation(fields: [producerId], references: [id])
+  orders        Order[]
+  enrollments   Enrollment[]
+  lessons       Lesson[]
+  affiliateLinks AffiliateLink[]
+
+  @@map("products")
+}
+
+// ── Orders ────────────────────────────────────────────────────
+model Order {
+  id              String        @id @default(uuid())
+  studentId       String        @map("student_id")
+  productId       String        @map("product_id")
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod @map("payment_method")
+  status          OrderStatus   @default(PENDING)
+  gatewayOrderId  String?       @map("gateway_order_id")
+  affiliateLinkId String?       @map("affiliate_link_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  student       User           @relation(fields: [studentId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+  affiliateLink AffiliateLink? @relation(fields: [affiliateLinkId], references: [id])
+
+  @@map("orders")
+}
+
+// ── Enrollments ───────────────────────────────────────────────
+model Enrollment {
+  id         String    @id @default(uuid())
+  studentId  String    @map("student_id")
+  productId  String    @map("product_id")
+  progress   Decimal   @default(0) @db.Decimal(5, 2)
+  expiresAt  DateTime? @map("expires_at")
+  enrolledAt DateTime  @default(now()) @map("enrolled_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  student User    @relation(fields: [studentId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([studentId, productId])
+  @@map("enrollments")
+}
+
+// ── Lessons ────────────────────────────────────────────────────
+model Lesson {
+  id           String   @id @default(uuid())
+  productId    String   @map("product_id")
+  title        String
+  description  String?
+  muxAssetId   String?  @map("mux_asset_id")
+  muxPlaybackId String? @map("mux_playback_id")
+  durationSec  Int?     @map("duration_sec")
+  orderIndex   Int      @map("order_index")
+  isFree       Boolean  @default(false) @map("is_free")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("lessons")
+}
+
+// ── Affiliate Links ────────────────────────────────────────────
+model AffiliateLink {
+  id            String   @id @default(uuid())
+  affiliateId   String   @map("affiliate_id")
+  productId     String   @map("product_id")
+  refCode       String   @unique @map("ref_code")
+  commissionPct Decimal  @db.Decimal(5, 2) @map("commission_pct")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  affiliate User    @relation("AffiliateUser", fields: [affiliateId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  orders    Order[]
+
+  @@map("affiliate_links")
+}

@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --accent: #e8401c;
+    --accent-dark: #c42e0e;
+  }
+
+  body {
+    @apply font-sans text-ink bg-paper antialiased;
+  }
+
+  * {
+    @apply border-stone-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent hover:bg-accent-dark text-white font-syne font-bold
+           px-5 py-3 rounded-lg transition-all duration-150
+           hover:shadow-[0_6px_20px_rgba(232,64,28,0.35)]
+           hover:-translate-y-px active:translate-y-0 disabled:opacity-60
+           disabled:pointer-events-none;
+  }
+
+  .btn-outline {
+    @apply border border-stone-300 hover:border-stone-500 text-stone-600
+           hover:text-ink font-medium px-5 py-3 rounded-lg transition-all duration-150
+           bg-transparent;
+  }
+
+  .input-field {
+    @apply w-full px-3.5 py-3 bg-white border border-stone-200 rounded-lg
+           text-[15px] text-ink placeholder-stone-400 outline-none
+           focus:border-accent focus:ring-2 focus:ring-accent/10
+           transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-[11px] font-bold uppercase tracking-widest text-stone-400 mb-1.5;
+  }
+
+  .card {
+    @apply bg-white border border-stone-200 rounded-xl;
+  }
+}
